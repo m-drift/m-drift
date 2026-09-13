@@ -1,0 +1,83 @@
+name: Refresh neural profile
+
+on:
+  schedule:
+    - cron: "17 0 * * *"   # once daily
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - generate_profile.py
+      - scripts/**
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Regenerate profile card SVGs
+        run: python generate_profile.py
+
+      - name: Scrape contribution data (no auth needed)
+        run: python scripts/fetch_contributions.py
+
+      - name: Render contribution heatmap SVG
+        run: python scripts/render_heatmap_svg.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dark.svg light.svg \
+            status-dark.svg status-light.svg \
+            divider-dark.svg divider-light.svg \
+            stack-dark.svg stack-light.svg \
+            achievements-dark.svg achievements-light.svg \
+            bio004-hero-dark.svg bio004-hero-light.svg \
+            bio004-hero-clean-dark.svg bio004-hero-clean-light.svg \
+            bio004-status-dark.svg bio004-status-light.svg \
+            bio004-divider-dark.svg bio004-divider-light.svg \
+            bio004-stack-dark.svg bio004-stack-light.svg \
+            bio004-results-dark.svg bio004-results-light.svg \
+            cipher-hero-dark.svg cipher-hero-light.svg \
+            cipher-status-dark.svg cipher-status-light.svg \
+            cipher-divider-dark.svg cipher-divider-light.svg \
+            cipher-stack-dark.svg cipher-stack-light.svg \
+            cipher-results-dark.svg cipher-results-light.svg \
+            musa-heatmap.svg bio004-activity.svg cipher-activity.svg \
+            data/contributions.json
+          git diff --cached --quiet || git commit -m "chore: refresh profile card [skip ci]"
+          git push
+
+      - name: Purge jsDelivr cache
+        run: |
+          for f in dark.svg light.svg \
+            status-dark.svg status-light.svg \
+            divider-dark.svg divider-light.svg \
+            stack-dark.svg stack-light.svg \
+            achievements-dark.svg achievements-light.svg \
+            bio004-hero-dark.svg bio004-hero-light.svg \
+            bio004-hero-clean-dark.svg bio004-hero-clean-light.svg \
+            bio004-status-dark.svg bio004-status-light.svg \
+            bio004-divider-dark.svg bio004-divider-light.svg \
+            bio004-stack-dark.svg bio004-stack-light.svg \
+            bio004-results-dark.svg bio004-results-light.svg \
+            cipher-hero-dark.svg cipher-hero-light.svg \
+            cipher-status-dark.svg cipher-status-light.svg \
+            cipher-divider-dark.svg cipher-divider-light.svg \
+            cipher-stack-dark.svg cipher-stack-light.svg \
+            cipher-results-dark.svg cipher-results-light.svg \
+            musa-heatmap.svg bio004-activity.svg cipher-activity.svg; do
+            curl -s -o /dev/null "https://purge.jsdelivr.net/gh/m-drift/m-drift@main/$f"
+          done

@@ -1,0 +1,12 @@
+{
+  "name": "m-drift",
+  "private": true,
+  "packageManager": "yarn@1.22.22",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "scan": "node scripts/security-scan.mjs",
+    "scan:history": "node scripts/security-scan.mjs --history"
+  }
+}
